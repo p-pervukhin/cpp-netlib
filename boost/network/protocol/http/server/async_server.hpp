@@ -37,6 +37,8 @@ namespace boost { namespace network { namespace http {
             tcp::endpoint endpoint = *resolver.resolve(query);
             acceptor.open(endpoint.protocol());
             acceptor.bind(endpoint);
+            boost::asio::ip::tcp::socket::reuse_address opt(true);
+            acceptor.set_option(opt);
             acceptor.listen();
             new_connection.reset(new connection(io_service, handler, thread_pool));
             acceptor.async_accept(new_connection->socket(),
