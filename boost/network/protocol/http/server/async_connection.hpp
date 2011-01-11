@@ -212,8 +212,35 @@ namespace boost { namespace network { namespace http {
         void write(Range const & range, Callback const & callback) {
             lock_guard lock(headers_mutex);
             if (error_encountered) boost::throw_exception(boost::system::system_error(*error_encountered));
-            boost::function<void(boost::system::error_code)> f = callback;
             write_impl(boost::make_iterator_range(range), callback);
+        }
+
+        template <class ConstBufferSeq, class Callback>
+        void write_vec(ConstBufferSeq const & seq, Callback const & callback)
+        {
+            lock_guard lock(headers_mutex);
+            if (error_encountered)
+                boost::throw_exception(boost::system::system_error(*error_encountered));
+
+            boost::function<void()> continuation = boost::bind(
+                &async_connection<Tag,Handler>::write_vec<ConstBufferSeq, Callback>
+                ,async_connection<Tag,Handler>::shared_from_this()
+                ,seq, callback
+            );
+
+            if (!headers_already_sent && !headers_in_progress) {
+                write_headers_only(continuation);
+                return;
+            } else if (headers_in_progress && !headers_already_sent) {
+                pending_actions.push_back(continuation);
+                return;
+            }
+
+            asio::async_write(
+                 socket_
+                ,seq
+                ,boost::bind(callback, asio::placeholders::error)
+            );
         }
 
     private:
