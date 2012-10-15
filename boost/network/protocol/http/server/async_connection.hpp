@@ -587,10 +587,10 @@ namespace boost { namespace network { namespace http {
                 while (start != end) {
                     thread_pool().post(*start++);
                 }
-                pending_actions_list().swap(pending_actions);
             } else {
                 error_encountered = in_place<boost::system::system_error>(ec);
             }
+            pending_actions_list().swap(pending_actions);
         }
 
         void handle_write(
