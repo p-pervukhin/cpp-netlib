@@ -320,6 +320,12 @@ namespace boost { namespace network { namespace http {
         };
 
         void start() {
+            static const size_t buffer_size = 1048576;
+
+            boost::system::error_code ec;
+            boost::asio::socket_base::receive_buffer_size option(buffer_size);
+            socket_.set_option(option, ec);
+
             typename ostringstream<Tag>::type ip_stream;
             ip_stream << socket_.remote_endpoint().address().to_v4().to_string() << ':'
                 << socket_.remote_endpoint().port();
