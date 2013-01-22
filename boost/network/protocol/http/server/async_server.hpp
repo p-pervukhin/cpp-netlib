@@ -11,7 +11,7 @@
 #include <boost/network/utils/thread_pool.hpp>
 
 namespace boost { namespace network { namespace http {
-    
+
     template <class Tag, class Handler>
     struct async_server_base {
         typedef basic_request<Tag> request;
@@ -30,6 +30,8 @@ namespace boost { namespace network { namespace http {
         , io_service()
         , acceptor(io_service)
         , stopping(false)
+        , socket_exception(false)
+
         {
             using boost::asio::ip::tcp;
             tcp::resolver resolver(io_service);
@@ -49,6 +51,11 @@ namespace boost { namespace network { namespace http {
         }
 
         void run() {
+            if (socket_exception)
+            {
+                boost::system::error_code ec;
+                acceptor.open(boost::asio::ip::tcp::v4(), ec);
+            }
             io_service.run();
         };
 
@@ -56,7 +63,18 @@ namespace boost { namespace network { namespace http {
             // stop accepting new requests and let all the existing
             // handlers finish.
             stopping = true;
-            acceptor.cancel();
+
+            if (!socket_exception)
+            {
+                try
+                    { acceptor.cancel(); }
+                catch(...)
+                    { socket_exception = true; }
+            }
+
+            boost::system::error_code ec;
+            if (socket_exception)
+                acceptor.close(ec);
         }
 
     private:
@@ -66,6 +84,7 @@ namespace boost { namespace network { namespace http {
         asio::ip::tcp::acceptor acceptor;
         bool stopping;
         connection_ptr new_connection;
+        bool socket_exception;
 
         void handle_accept(boost::system::error_code const & ec) {
             if (!ec) {
