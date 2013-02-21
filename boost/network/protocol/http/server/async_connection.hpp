@@ -584,17 +584,16 @@ namespace boost { namespace network { namespace http {
 
         void handle_write_headers(boost::function<void()> callback, boost::system::error_code const & ec, std::size_t bytes_transferred) {
             lock_guard lock(headers_mutex);
-            if (!ec) {
-                headers_buffer.consume(headers_buffer.size());
-                headers_already_sent = true;
-                thread_pool().post(callback);
-                pending_actions_list::iterator start = pending_actions.begin()
-                    , end = pending_actions.end();
-                while (start != end) {
-                    thread_pool().post(*start++);
-                }
-            } else {
+            if(ec)
                 error_encountered = in_place<boost::system::system_error>(ec);
+
+            headers_buffer.consume(headers_buffer.size());
+            headers_already_sent = true;
+            thread_pool().post(callback);
+            pending_actions_list::iterator start = pending_actions.begin()
+                , end = pending_actions.end();
+            while (start != end) {
+                thread_pool().post(*start++);
             }
             pending_actions_list().swap(pending_actions);
         }
@@ -669,8 +668,11 @@ namespace boost { namespace network { namespace http {
                            ,shared_buffers buffers)
         {
             lock_guard lock(headers_mutex);
-            if (error_encountered)
-                boost::throw_exception(boost::system::system_error(*error_encountered));
+            if(error_encountered)
+            {
+                callback(error_encountered->code());
+                return;
+            }
 
             boost::function<void(boost::system::error_code)> callback_function =
                     callback;
