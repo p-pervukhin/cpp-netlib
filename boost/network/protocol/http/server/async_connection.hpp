@@ -670,7 +670,7 @@ namespace boost { namespace network { namespace http {
             lock_guard lock(headers_mutex);
             if(error_encountered)
             {
-                callback(error_encountered->code());
+                thread_pool().post(boost::bind(callback, error_encountered->code()));
                 return;
             }
 
