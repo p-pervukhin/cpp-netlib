@@ -9,11 +9,25 @@
 #include <boost/network/protocol/http/server/async_connection.hpp>
 #include <boost/network/protocol/http/server/header.hpp>
 #include <boost/network/utils/thread_pool.hpp>
+#include <boost/thread/condition.hpp>
+#include <boost/thread/mutex.hpp>
 
 namespace boost { namespace network { namespace http {
 
     template <class Tag, class Handler>
     struct async_server_base {
+        struct ctx
+        {
+            size_t Connections;
+            bool Stopped;
+            boost::condition Condition;
+            boost::mutex Mutex;
+
+            ctx() : Connections(0), Stopped(false) {}
+        };
+        typedef boost::shared_ptr<ctx> ctx_ptr;
+
+        typedef async_server_base<Tag, Handler> self;
         typedef basic_request<Tag> request;
         typedef basic_response<Tag> response;
         typedef typename string<Tag>::type string_type;
@@ -31,6 +45,7 @@ namespace boost { namespace network { namespace http {
         , acceptor(io_service)
         , stopping(false)
         , socket_exception(false)
+        , ctx_(new ctx())
 
         {
             using boost::asio::ip::tcp;
@@ -42,7 +57,8 @@ namespace boost { namespace network { namespace http {
             boost::asio::ip::tcp::socket::reuse_address opt(true);
             acceptor.set_option(opt);
             acceptor.listen();
-            new_connection.reset(new connection(io_service, handler, thread_pool));
+            new_connection.reset(new connection(io_service, handler, thread_pool,
+                boost::bind(&self::connection_destroyed, ctx_)));
             acceptor.async_accept(new_connection->socket(),
                 boost::bind(
                     &async_server_base<Tag,Handler>::handle_accept
@@ -63,6 +79,13 @@ namespace boost { namespace network { namespace http {
             // stop accepting new requests and let all the existing
             // handlers finish.
             stopping = true;
+
+            {
+                boost::mutex::scoped_lock lock(ctx_->Mutex);
+                ctx_->Stopped = true;
+                while(ctx_->Connections > 0)
+                    ctx_->Condition.wait(lock);
+            }
 
             if (!socket_exception)
             {
@@ -85,9 +108,17 @@ namespace boost { namespace network { namespace http {
         bool stopping;
         connection_ptr new_connection;
         bool socket_exception;
+        ctx_ptr ctx_;
 
         void handle_accept(boost::system::error_code const & ec) {
             if (!ec) {
+                {
+                    boost::mutex::scoped_lock lock(ctx_->Mutex);
+                    if(ctx_->Stopped)
+                        return;
+                    ++ctx_->Connections;
+                }
+
                 new_connection->start();
                 if (!stopping) {
                     new_connection.reset(
@@ -95,6 +126,7 @@ namespace boost { namespace network { namespace http {
                             io_service
                             , handler
                             , thread_pool
+                            , boost::bind(&self::connection_destroyed, ctx_)
                             )
                         );
                     acceptor.async_accept(new_connection->socket(),
@@ -107,6 +139,14 @@ namespace boost { namespace network { namespace http {
                 }
             }
         }
+
+        static void connection_destroyed(ctx_ptr c)
+        {
+            boost::mutex::scoped_lock lock(c->Mutex);
+            --c->Connections;
+            c->Condition.notify_all();
+        }
+
     };
 
 } /* http */

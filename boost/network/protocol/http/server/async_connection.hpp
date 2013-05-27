@@ -122,11 +122,15 @@ namespace boost { namespace network { namespace http {
         }
 
     public:
+        typedef boost::function0<void> TDestructionHandler;
+
+    public:
 
         async_connection(
             asio::io_service & io_service
             , Handler & handler
             , utils::thread_pool & thread_pool
+            , const TDestructionHandler &destruction_handler
             )
         : socket_(io_service)
         , strand(io_service)
@@ -137,6 +141,7 @@ namespace boost { namespace network { namespace http {
         , headers_in_progress(false)
         , first_line_in_progress(false)
         , headers_buffer(BOOST_NETWORK_HTTP_SERVER_CONNECTION_HEADER_BUFFER_MAX_SIZE)
+        , destruction_handler_(destruction_handler)
         {
             new_start = read_buffer_.begin();
         }
@@ -145,6 +150,8 @@ namespace boost { namespace network { namespace http {
             boost::system::error_code ignored;
             socket_.shutdown(asio::ip::tcp::socket::shutdown_both, ignored);
             socket_.close(ignored);
+            if(destruction_handler_)
+                destruction_handler_();
         }
 
         /** Function: template <class Range> set_headers(Range headers)
@@ -302,6 +309,7 @@ namespace boost { namespace network { namespace http {
         utils::thread_pool & thread_pool_;
         volatile bool headers_already_sent, first_line_already_sent, headers_in_progress, first_line_in_progress;
         asio::streambuf headers_buffer, first_line_buffer;
+        const TDestructionHandler destruction_handler_;
 
         boost::recursive_mutex headers_mutex;
         buffer_type read_buffer_;
