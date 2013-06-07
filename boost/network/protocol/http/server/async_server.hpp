@@ -43,7 +43,6 @@ namespace boost { namespace network { namespace http {
         , thread_pool(thread_pool)
         , io_service()
         , acceptor(io_service)
-        , stopping(false)
         , socket_exception(false)
         , ctx_(new ctx())
 
@@ -57,13 +56,17 @@ namespace boost { namespace network { namespace http {
             boost::asio::ip::tcp::socket::reuse_address opt(true);
             acceptor.set_option(opt);
             acceptor.listen();
-            new_connection.reset(new connection(io_service, handler, thread_pool,
-                boost::bind(&self::connection_destroyed, ctx_)));
+            new_connection.reset(
+                new connection(io_service, handler, thread_pool),
+                boost::bind(&self::connection_destroyed, ctx_, _1));
+
             acceptor.async_accept(new_connection->socket(),
                 boost::bind(
                     &async_server_base<Tag,Handler>::handle_accept
                     , this
                     , boost::asio::placeholders::error));
+
+            ++ctx_->Connections;
         }
 
         void run() {
@@ -78,10 +81,13 @@ namespace boost { namespace network { namespace http {
         void stop() {
             // stop accepting new requests and let all the existing
             // handlers finish.
-            stopping = true;
 
+            drop_connection();
             {
                 boost::mutex::scoped_lock lock(ctx_->Mutex);
+                if(ctx_->Stopped)
+                    return;
+
                 ctx_->Stopped = true;
                 while(ctx_->Connections > 0)
                     ctx_->Condition.wait(lock);
@@ -105,46 +111,56 @@ namespace boost { namespace network { namespace http {
         utils::thread_pool & thread_pool;
         asio::io_service io_service;
         asio::ip::tcp::acceptor acceptor;
-        bool stopping;
         connection_ptr new_connection;
         bool socket_exception;
         ctx_ptr ctx_;
 
-        void handle_accept(boost::system::error_code const & ec) {
-            if (!ec) {
-                {
-                    boost::mutex::scoped_lock lock(ctx_->Mutex);
-                    if(ctx_->Stopped)
-                        return;
-                    ++ctx_->Connections;
-                }
-
-                new_connection->start();
-                if (!stopping) {
-                    new_connection.reset(
-                        new connection(
-                            io_service
-                            , handler
-                            , thread_pool
-                            , boost::bind(&self::connection_destroyed, ctx_)
-                            )
-                        );
-                    acceptor.async_accept(new_connection->socket(),
-                        boost::bind(
-                            &async_server_base<Tag,Handler>::handle_accept
-                            , this
-                            , boost::asio::placeholders::error
-                            )
-                        );
-                }
-            }
+        void drop_connection()
+        {
+            connection_ptr stale;
+            boost::mutex::scoped_lock lock(ctx_->Mutex);
+            stale.swap(new_connection);
         }
 
-        static void connection_destroyed(ctx_ptr c)
+        void handle_accept(boost::system::error_code const & ec)
         {
-            boost::mutex::scoped_lock lock(c->Mutex);
-            --c->Connections;
-            c->Condition.notify_all();
+            if(ec) return;
+
+            connection_ptr prev_conn;
+            {
+                boost::mutex::scoped_lock lock(ctx_->Mutex);
+                prev_conn.swap(new_connection);
+                if(ctx_->Stopped)
+                    return;
+
+                ++ctx_->Connections;
+            }
+
+            if(prev_conn)
+                prev_conn->start();
+
+            connection_ptr new_conn(new connection(io_service, handler, thread_pool),
+                boost::bind(&self::connection_destroyed, ctx_, _1));
+
+            acceptor.async_accept(new_conn->socket(),
+                boost::bind(
+                    &async_server_base<Tag,Handler>::handle_accept
+                    , this
+                    , boost::asio::placeholders::error
+                    )
+                );
+
+            boost::mutex::scoped_lock lock(ctx_->Mutex);
+            new_connection.swap(new_conn);
+        }
+
+        static void connection_destroyed(ctx_ptr ctx, connection *stale)
+        {
+            delete stale;
+
+            boost::mutex::scoped_lock lock(ctx->Mutex);
+            if(--ctx->Connections == 0)
+                ctx->Condition.notify_all();
         }
 
     };
