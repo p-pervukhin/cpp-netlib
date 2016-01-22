@@ -7,7 +7,12 @@
 Downloading an official release
 ===============================
 
-All stable versions of :mod:`cpp-netlib` can be downloaded from
+You can find links to the latest official release from the project's official
+website:
+
+    http://cpp-netlib.org/
+
+All previous stable versions of :mod:`cpp-netlib` can be downloaded from
 Github_ from this url:
 
     http://github.com/cpp-netlib/cpp-netlib/downloads
@@ -30,27 +35,22 @@ Using the command line, the command to get the latest code is:
 
 ::
 
-    shell$ git clone git://github.com/mikhailberis/cpp-netlib.git
+    shell$ git clone git://github.com/cpp-netlib/cpp-netlib.git
 
 This should be enough information get to started.  To do more complex
 things with Git, such as pulling changes or checking out a new branch,
 refer to the `Git documentation`_.
 
-.. note:: If you look at the Git repository closely, this is the repository of
-   *mikhailberis* instead of *cpp-netlib*. The reason is that the main developer
-   and maintainer of the project is Dean Michael Berris, who goes by the alias
-   *mikhailberis* on the Internet.
-
-   Dean does the merging and maintenance of the whole library, similar to how
-   `Linus Torvalds`_ of the Linux project acts as the gatekeeper of the project.
-
-.. _`Linus Torvalds`: http://en.wikipedia.org/wiki/Linus_Torvalds
+.. note:: Previous versions of :mod:`cpp-netlib` referred to the
+   *mikhailberis* repository as the main development repository. This
+   account is still valid, but not always up-to-date. In the interest of
+   consistency, the main repository has been changed to *cpp-netlib*.
 
 Windows users need to use msysGit_, and to invoke the command above
 from a shell.
 
 For fans of Subversion_, the same code can be checked out from
-http://svn.github.com/mikhailberis/cpp-netlib.git.
+http://svn.github.com/cpp-netlib/cpp-netlib.git.
 
 .. _Git: http://git-scm.com/
 .. _`Git documentation`: http://git-scm.com/documentation
@@ -70,7 +70,7 @@ Getting Boost
 =============
 
 :mod:`cpp-netlib` depends on Boost_.  It should work for any version
-of Boost above 1.43.0.  If Boost is not installed on your system, the
+of Boost above 1.50.0.  If Boost is not installed on your system, the
 latest package can be found on the `Boost web-site`_.  The environment
 variable ``BOOST_ROOT`` must be defined, which must be the full path
 name of the top directory of the Boost distribution.  Although Boost
@@ -89,6 +89,11 @@ still requires linking with `Boost.System`_, `Boost.Date_time`_, and
 
 .. _`Boost Getting Started`:
    http://www.boost.org/doc/libs/release/more/getting_started/index.html
+
+.. warning:: There is a known incompatibility between :mod:`cpp-netlib` and
+   Boost 1.46.1 on some compilers. It is not recommended to use :mod:`cpp-netlib`
+   with Boost 1.46.1. Some have reported though that Boost 1.47.0
+   and :mod:`cpp-netlib` work together better.
 
 Getting CMake
 =============
@@ -109,16 +114,54 @@ the ``~/cpp-netlib`` directory exists, and is the top-level directory of the
 Building with CMake
 ===================
 
-To build the tests that come with cpp-netlib, we first need to configure the
+To build the tests that come with :mod:`cpp-netlib`, we first need to configure the
 build system to use our compiler of choice. This is done by running the
 ``cmake`` command at the top-level directory of :mod:`cpp-netlib` with
 additional parameters::
 
-    $ cd ~/cpp-netlib
+    $ mkdir ~/cpp-netlib-build
+    $ cd ~/cpp-netlib-build
     $ cmake -DCMAKE_BUILD_TYPE=Debug \
     >       -DCMAKE_C_COMPILER=gcc   \
     >       -DCMAKE_CXX_COMPILER=g++ \
-    >       .
+    >       ../cpp-netlib
+
+.. note::
+
+    While it's not compulsory, it's recommended that
+    :mod:`cpp-netlib` is built outside the source directory.
+    For the purposes of documentation, we'll assume that all
+    builds are done in ``~/cpp-netlib-build``.
+
+If you intend to use the SSL support when using the HTTP client libraries in
+:mod:`cpp-netlib`, you may need to build it with OpenSSL_ installed or at least
+available to CMake. If you have the development headers for OpenSSL_ installed
+on your system when you build :mod:`cpp-netlib`, CMake will be able to detect it
+and set the ``BOOST_NETWORK_ENABLE_HTTPS`` macro when building the library to
+support HTTPS URIs.
+
+One example for building the library with OpenSSL_ support with a custom
+(non-installed) version of OpenSSL_ is by doing the following::
+
+    $ cmake -DCMAKE_BUILD_TYPE=Debug \
+    >       -DCMAKE_C_COMPILER=clang \
+    >       -DCMAKE_CXX_COMPILER=clang++ \
+    >       -DOPENSSL_ROOT_DIR=/Users/dberris/homebrew/Cellar/openssl/1.0.1f
+    >       ../cpp-netlib
+
+.. _OpenSSL: http://www.openssl.org/
+
+You can also use a different root directory for the Boost_ project by using the
+``-DBOOST_ROOT`` configuration option to CMake. This is useful if you intend to
+build the library with a specific version of Boost that you've built in a
+separate directory::
+
+    $ cmake -DCMAKE_BUILD_TYPE=Debug \
+    >       -DCMAKE_C_COMPILER=clang \
+    >       -DCMAKE_CXX_COMPILER=clang++ \
+    >       -DOPENSSL_ROOT_DIR=/Users/dberris/homebrew/Cellar/openssl/1.0.1f \
+    >       -DBOOST_ROOT=/Users/dberris/Source/boost_1_55_0
+    >       ../cpp-netlib
 
 Building on Linux
 ~~~~~~~~~~~~~~~~~
@@ -126,7 +169,7 @@ Building on Linux
 On Linux, this will generate the appropriate Makefiles that will enable you to
 build and run the tests and examples that come with :mod:`cpp-netlib`. To build
 the tests, you can run ``make`` in the same top-level directory of
-:mod:`cpp-netlib`::
+``~/cpp-netlib-build``::
 
     $ make
 
@@ -139,7 +182,8 @@ the tests, you can run ``make`` in the same top-level directory of
 
    As a caveat, :mod:`cpp-netlib` is heavy on template metaprogramming and will
    require a lot of computing and memory resources to build the individual
-   tests. Do this at the risk of thrashing_ your system.
+   tests. Do this at the risk of thrashing_ your system.  However, this
+   compile-time burden is much reduced in recent versions.
 
 .. _thrashing: http://en.wikipedia.org/wiki/Thrashing_(computer_science)
 
@@ -147,14 +191,60 @@ Once the build has completed, you can now run the test suite by issuing::
 
     $ make test
 
+You can install :mod:`cpp-netlib` by issuing::
+
+    $ sudo make install
+
+By default this installs :mod:`cpp-netlib` into ``/usr/local``.
+
+.. note:: As of version 0.9.3, :mod:`cpp-netlib` produces three static
+   libraries.  Using GCC on Linux these are::
+
+      libcppnetlib-client-connections.a
+      libcppnetlib-server-parsers.a
+      libcppnetlib-uri.a
+
+   Users can find them in ``~/cpp-netlib-build/libs/network/src``.
+
 Building On Windows
 ~~~~~~~~~~~~~~~~~~~
 
 If you're using the Microsoft Visual C++ compiler or the Microsoft Visual Studio
-IDE and you would like to build cpp-netlib from within Visual Studio, you can
-look for the solution and project files as the artifacts of the call to
-``cmake`` -- the file should be named ``cpp-netlib.sln`` (the solution) along
+IDE and you would like to build :mod:`cpp-netlib` from within Visual Studio, you
+can look for the solution and project files as the artifacts of the call to
+``cmake`` -- the file should be named ``CPP-NETLIB.sln`` (the solution) along
 with a number of project files for Visual Studio.
+
+.. note:: As of version 0.9.3, :mod:`cpp-netlib` produces three static
+   libraries.  Using Visual C++ on Windows they are::
+
+      cppnetlib-client-connections.lib
+      cppnetlib-server-parsers.lib
+      cppnetlib-uri.lib
+
+   Users can find them in ``~/cpp-netlib-build/libs/network/src``.
+
+Using :mod:`cpp-netlib`
+=======================
+
+CMake projects
+~~~~~~~~~~~~~~
+
+Projects using CMake can add the following lines in their ``CMakeLists.txt`` to
+be able to use :mod:`cpp-netlib`::
+
+   set ( CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ~/cpp-netlib-build )
+   find_package ( cppnetlib 0.11.0 REQUIRED )
+   include_directories ( ${CPPNETLIB_INCLUDE_DIRS} )
+   target_link_libraries ( MyApplication ${CPPNETLIB_LIBRARIES} )
+
+.. note:: Setting ``CMAKE_PREFIX_PATH`` is only required when :mod:`cpp-netlib`
+   is not installed to a location that CMake searches.  When :mod:`cpp-netlib`
+   is installed to the default location (``/usr/local``), ``CMake`` can find it.
+
+.. note:: We assume that ``MyApplication`` is the application that you are
+   building and which depends on :mod:`cpp-netlib`.
+
 
 Reporting Issues, Getting Support
 =================================
@@ -168,9 +258,5 @@ for the project at http://github.com/cpp-netlib/cpp-netlib/issues.
 
 You can also opt to join the developers mailing list for a more personal
 interaction with the developers of the project. You can join the mailing list
-through https://lists.sourceforge.net/lists/listinfo/cpp-netlib-devel.
-
-You may also choose to get commercial support from:
-
-    Dean Michael Berris - <me@deanberris.com>
+through http://groups.google.com/forum/#!forum/cpp-netlib.
 

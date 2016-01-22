@@ -7,34 +7,35 @@
 // (See accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-namespace boost { namespace network { namespace http {
+#include <boost/network/uri/uri.hpp>
 
-    template <class Tag>
-    struct basic_request;
+namespace boost {
+namespace network {
+namespace http {
 
-    namespace impl {
-        template <class Tag>
-        struct uri_wrapper {
-            basic_request<Tag> const & message_;
-            uri_wrapper(basic_request<Tag> const & message)
-                : message_(message) {}
-            typedef typename basic_request<Tag>::string_type string_type;
-            operator string_type() {
-                return message_.uri().raw();
-            }
-        };
-    }
+template <class Tag>
+struct basic_request;
 
-    template <class Tag> inline
-    impl::uri_wrapper<Tag>
-    uri(basic_request<Tag> const & request) {
-        return impl::uri_wrapper<Tag>(request);
-    }
+namespace impl {
+template <class Tag>
+struct uri_wrapper {
+  basic_request<Tag> const& message_;
+  uri_wrapper(basic_request<Tag> const& message) : message_(message) {}
+  typedef typename basic_request<Tag>::string_type string_type;
+  operator string_type() { return message_.uri().raw(); }
+  operator boost::network::uri::uri() { return message_.uri(); }
+};
+}
 
-} // namespace http
+template <class Tag>
+inline impl::uri_wrapper<Tag> uri(basic_request<Tag> const& request) {
+  return impl::uri_wrapper<Tag>(request);
+}
 
-} // namespace network
+}  // namespace http
 
-} // nmaespace boost
+}  // namespace network
 
-#endif // BOOST_NETWORK_PROTOCOL_HTTP_MESSAGE_WRAPPERS_URI_HPP_20100620
+}  // namespace boost
+
+#endif  // BOOST_NETWORK_PROTOCOL_HTTP_MESSAGE_WRAPPERS_URI_HPP_20100620

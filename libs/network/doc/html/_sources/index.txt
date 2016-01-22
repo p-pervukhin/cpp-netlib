@@ -1,108 +1,124 @@
-.. cpp-netlib documentation master file, created by
-   sphinx-quickstart on Wed Jun 16 23:53:37 2010.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
-=====================
- C++ Network Library
-=====================
-
-.. image:: static/boost.png
-   :align: right
+.. _index:
+.. rubric:: Straightforward network programming in modern C++
 
 .. :Authors: Glyn Matthews <glyn.matthews@gmail.com>
-.. 	  Dean Michael Berris <mikhailberis@gmail.com>
-.. :Date: Nov 9, 2010
-.. :Version: 0.8
+.. 	  Dean Michael Berris <dberris@google.com>
+.. :Date: 2014-10-01
+.. :Version: 0.11.0
 .. :Description: Complete user documentation, with examples, for the :mod:`cpp-netlib`.
-.. :Copyright: Copyright Glyn Matthews, Dean Michael Berris 2008-2010.
+.. :Copyright: Copyright Glyn Matthews, Dean Michael Berris 2008-2013.
+..             Copyrigh 2013 Google, Inc.
 ..             Distributed under the Boost Software License, Version
 ..             1.0. (See accompanying file LICENSE_1_0.txt or copy at
 ..             http://www.boost.org/LICENSE_1_0.txt)
 
-Welcome
--------
+Getting cpp-netlib
+==================
 
-The :mod:`cpp-netlib` is a library that provides application layer
-protocol support using modern C++ techniques.  It is light-weight,
-fast, cross-platform and is intended to be as easy to configure as
-possible.
+You can find out more about the :mod:`cpp-netlib` project at
+http://cpp-netlib.org/.
 
-It is developed by people linked to the Boost_ community and will at
-some point in the future be submitted for review into Boost.  A
-presentation about :mod:`cpp-netlib` was given at `BoostCon 2010`_,
-for which the `slides`_ and the `paper`_ can be found on-line.
+**Download**
 
-Sneak Peek
-----------
+You can get the latest official version of the library from the official
+project website at:
 
-The :mod:`cpp-netlib` allows you to write semantically consistent code for
-making different kinds of higher level network applications.
+    http://cpp-netlib.org/
 
-The library allows for writing simple code for simple C++ HTTP client
-applications like:
+This version of :mod:`cpp-netlib` is tagged as cpp-netlib-0.11.0 in the GitHub_
+repository. You can find more information about the progress of the development
+by checking our GitHub_ project page at:
 
-.. code-block:: c++
+    http://github.com/cpp-netlib/cpp-netlib
+
+**Support**
+
+You can ask questions, join the discussion, and report issues to the
+developers mailing list by joining via:
+
+    https://groups.google.com/group/cpp-netlib
+
+You can also file issues on the Github_ issue tracker at:
+
+    http://github.com/cpp-netlib/cpp-netlib/issues
+
+We are a growing community and we are happy to accept new
+contributions and ideas.
+
+C++ Network Library
+===================
+
+:mod:`cpp-netlib` is a library collection that provides application layer
+protocol support using modern C++ techniques.  It is light-weight, fast,
+portable and is intended to be as easy to configure as possible.
+
+Hello, world!
+=============
+
+The :mod:`cpp-netlib` allows developers to write fast, portable
+network applications with the minimum of fuss.
+
+An HTTP server-client example can be written in tens of lines of code.
+The client is as simple as this:
+
+.. code-block:: cpp
 
     using namespace boost::network;
     using namespace boost::network::http;
 
-    client::request request_("http://www.boost.org/");
+    client::request request_("http://127.0.0.1:8000/");
     request_ << header("Connection", "close");
     client client_;
-    client::response response_ = client_.get(request);
-    std::string body = body(response_);
+    client::response response_ = client_.get(request_);
+    std::string body_ = body(response_);
 
-The :mod:`cpp-netlib` is being developed for eventual submission to Boost_.
+And the corresponding server code is listed below:
 
-Download
---------
+.. code-block:: cpp
 
-You can download the latest releases of the library at:
+    namespace http = boost::network::http;
 
-    http://github.com/cpp-netlib/cpp-netlib/downloads
+    struct handler;
+    typedef http::server<handler> http_server;
 
-You can also get the latest developments from the Git_ repository at:
+    struct handler {
+        void operator() (http_server::request const &request,
+                         http_server::response &response) {
+            response = http_server::response::stock_reply(
+                http_server::response::ok, "Hello, world!");
+        }
 
-    git://github.com/mikhailberis/cpp-netlib.git
+        void log(http_server::string_type const &info) {
+            std::cerr << "ERROR: " << info << '\n';
+        }
+    };
 
-You can find more information about the progress of the development by checking
-the GitHub_ project page at:
+    int main(int arg, char * argv[]) {
+        handler handler_;
+        http_server::options options(handler_);
+        http_server server_(
+            options.address("0.0.0.0")
+                   .port("8000"));
+        server_.run();
+    }
 
-    http://github.com/cpp-netlib/cpp-netlib
+Want to learn more?
+===================
 
-Support
--------
+    * :ref:`Take a look at the getting started guide <getting_started>`
+    * :ref:`Learn from some simple examples <examples>`
+    * :ref:`Find out what's new <whats_new>`
+    * :ref:`Study the library in more depth <in_depth>`
+    * :ref:`Discover more through the full reference <reference>`
+    * :ref:`Full table of contents <contents>`
 
-You can ask questions, join the discussion, and report issues to the developers
-mailing list by joining via:
+.. warning:: Be aware that not all features are stable.  The generic
+   	     message design is under review and the URI and HTTP
+   	     client implementation will continue to undergo
+   	     refactoring.  Future versions will include support for
+   	     other network protocols.
 
-    https://lists.sourceforge.net/lists/listinfo/cpp-netlib-devel
-
-You may also file issues on the Github_ issue tracker at:
-
-    http://github.com/cpp-netlib/cpp-netlib/issues
-
-Contents
---------
-
-.. toctree::
-   :maxdepth: 2
-
-   whats_new.rst
-   getting_started.rst
-   examples.rst
-   in_depth.rst
-   techniques.rst
-   history.rst
-   install.rst
-   reference.rst
-   references.rst
 
 .. _Boost: http://www.boost.org/
-.. _`BoostCon 2010`: http://www.boostcon.com/
-.. _`slides`: http://www.filetolink.com/b0e89d06
-.. _`paper`: http://github.com/downloads/mikhailberis/cpp-netlib-boostcon-paper/cpp-netlib.pdf
-.. _Git: http://git-scm.com/
 .. _GitHub: http://github.com/
 

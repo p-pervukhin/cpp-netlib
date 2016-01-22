@@ -4,60 +4,43 @@
 #          http://www.boost.org/LICENSE_1_0.txt)
 
 include_directories(${CPP-NETLIB_SOURCE_DIR})
-find_package( Boost 1.41.0 COMPONENTS unit_test_framework system regex date_time thread filesystem )
-find_package( OpenSSL )
-if (OPENSSL_FOUND)
-    include_directories(${OPENSSL_INCLUDE_DIR}})
-    add_definitions(-DBOOST_NETWORK_ENABLE_HTTPS)
-endif()
-find_package( Threads )
-set(Boost_USE_STATIC_LIBS ON)
-set(Boost_USE_MULTITHREADED ON)
+
+add_subdirectory(uri)
+add_subdirectory(http)
 
 if (Boost_FOUND)
     set(
         TESTS
-        http_incremental_parser
-        http_incremental_request_parser
-        http_1_0_test
-        http_1_1_test
-        http_localhost_tests
-        https_localhost_tests
         message_test
-        http_message_test
         message_transform_test
-        url_test
-        http_url_test
         utils_thread_pool
-        http_async_message_ready
+	# utils_base64_test -- turn on when ready.
         )
     foreach (test ${TESTS})
-        set_source_files_properties(${test}.cpp
+        if (${CMAKE_CXX_COMPILER_ID} MATCHES GNU)
+          set_source_files_properties(${test}.cpp
             PROPERTIES COMPILE_FLAGS "-Wall")
-        add_executable(cpp-netlib-${test} ${test}.cpp)
-        target_link_libraries(cpp-netlib-${test} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-        if (OPENSSL_FOUND)
-            target_link_libraries(cpp-netlib-${test} ${OPENSSL_LIBRARIES})
         endif()
+        add_executable(cpp-netlib-${test} ${test}.cpp)
+	    add_dependencies(cpp-netlib-${test} cppnetlib-uri)
+        target_link_libraries(cpp-netlib-${test} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT} cppnetlib-uri)
+        if (OPENSSL_FOUND)
+          target_link_libraries(cpp-netlib-${test} ${OPENSSL_LIBRARIES})
+        endif()
+        if (${CMAKE_CXX_COMPILER_ID} MATCHES GNU AND ${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+		  target_link_libraries(cpp-netlib-${test} ws2_32 wsock32)
+		endif()
+	    if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+	      target_link_libraries(cpp-netlib-${test} rt)
+	    endif()
         set_target_properties(cpp-netlib-${test}
-            PROPERTIES RUNTIME_OUTPUT_DIRECTORY ../../../build/tests)
-        add_test(cpp-netlib-${test} ../../../build/tests/cpp-netlib-${test})
+            PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CPP-NETLIB_BINARY_DIR}/tests)
+        add_test(cpp-netlib-${test}
+            ${CPP-NETLIB_BINARY_DIR}/tests/cpp-netlib-${test})
     endforeach (test)
 
-    set(SERVER_TESTS
-        hello_world
-        http_async_server
-        http_server_async_less_copy
-        )
-    foreach (test ${SERVER_TESTS})
-        set_source_files_properties(${test}.cpp
-            PROPERTIES COMPILE_FLAGS "-Wall")
-        add_executable(cpp-netlib-${test} ${test}.cpp)
-        target_link_libraries(cpp-netlib-${test} ${Boost_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-        set_target_properties(cpp-netlib-${test}
-            PROPERTIES RUNTIME_OUTPUT_DIRECTORY ../../../build/tests)
-        add_test(cpp-netlib-${test} python httplib_acceptance.py ../../../build/tests/cpp-netlib-${test} ../../../build/tests/cpp-netlib-${test}.passed)
-    endforeach (test)
+    # Also copy the server directory to the root of the build directory.
+    file(COPY server DESTINATION ${CPP-NETLIB_BINARY_DIR}/libs/network/test/)
 
 endif()
 

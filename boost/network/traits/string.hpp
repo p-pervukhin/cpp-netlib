@@ -4,15 +4,13 @@
 //    (See accompanying file LICENSE_1_0.txt or copy at
 //          http://www.boost.org/LICENSE_1_0.txt)
 
-
 #ifndef BOOST_NETWORK_TRAITS_STRING_INC
 #define BOOST_NETWORK_TRAITS_STRING_INC
 
-# include <string>
-# include <boost/network/tags.hpp>
-# include <boost/network/support/is_default_string.hpp>
-# include <boost/network/support/is_default_wstring.hpp>
-# include <boost/mpl/if.hpp>
+#include <string>
+#include <boost/network/tags.hpp>
+#include <boost/network/support/is_default_string.hpp>
+#include <boost/network/support/is_default_wstring.hpp>
 
 #ifndef BOOST_NETWORK_DEFAULT_STRING
 #define BOOST_NETWORK_DEFAULT_STRING std::string
@@ -22,27 +20,29 @@
 #define BOOST_NETWORK_DEFAULT_WSTRING std::wstring
 #endif
 
-namespace boost { namespace network {
+namespace boost {
+namespace network {
 
-    template <class Tag>
-    struct unsupported_tag;
+template <class Tag>
+struct unsupported_tag;
 
-    template <class Tag>
-    struct string
-        : mpl::if_<
-            is_default_string<Tag>,
-            BOOST_NETWORK_DEFAULT_STRING,
-            typename mpl::if_<
-                is_default_wstring<Tag>,
-                BOOST_NETWORK_DEFAULT_WSTRING,
-                unsupported_tag<Tag>
-            >::type
-        >
-    {};
+template <class Tag, class Enable = void>
+struct string {
+  typedef unsupported_tag<Tag> type;
+};
 
-} // namespace network
+template <class Tag>
+struct string<Tag, typename enable_if<is_default_string<Tag> >::type> {
+  typedef BOOST_NETWORK_DEFAULT_STRING type;
+};
 
-} // namespace boost
+template <class Tag>
+struct string<Tag, typename enable_if<is_default_wstring<Tag> >::type> {
+  typedef BOOST_NETWORK_DEFAULT_WSTRING type;
+};
 
+}  // namespace network
 
-#endif // BOOST_NETWORK_TRAITS_STRING_INC
+}  // namespace boost
+
+#endif  // BOOST_NETWORK_TRAITS_STRING_INC

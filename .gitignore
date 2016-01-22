@@ -5,9 +5,7 @@ CMakeCache.txt
 CMakeFiles
 Makefile
 Testing
-build
-_build
-bin
 *.gch
 libs/mime/test/mime-roundtrip
-
+*.a
+_build

@@ -7,25 +7,23 @@
 // http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/network/protocol/http/tags.hpp>
-#include <boost/type_traits/is_base_of.hpp>
+#include <boost/utility/enable_if.hpp>
 
-namespace boost { namespace network { namespace http {
-    
-    template <class Tag>
-    struct unsupported_tag;
+namespace boost {
+namespace network {
+namespace http {
 
-    template <class Tag>
-    struct is_simple :
-        is_base_of<
-            tags::simple
-            , Tag
-        >
-    {};
+template <class Tag, class Enable = void>
+struct is_simple : mpl::false_ {};
+
+template <class Tag>
+struct is_simple<
+    Tag, typename enable_if<typename Tag::is_simple>::type> : mpl::true_ {};
 
 } /* http */
 
 } /* network */
-    
+
 } /* boost */
 
 #endif /* BOOST_NETWORK_SUPPORT_IS_SIMPLE_HPP_20100927 */

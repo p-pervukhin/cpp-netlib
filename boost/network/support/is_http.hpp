@@ -7,20 +7,20 @@
 // http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/network/tags.hpp>
-#include <boost/type_traits/is_base_of.hpp>
+#include <boost/utility/enable_if.hpp>
 
-namespace boost { namespace network {
+namespace boost {
+namespace network {
 
-    template <class Tag>
-    struct is_http :
-        is_base_of<
-            tags::http,
-            Tag
-        >
-    {};
+template <class Tag, class Enable = void>
+struct is_http : mpl::false_ {};
 
-} // namespace network
+template <class Tag>
+struct is_http<Tag,
+               typename enable_if<typename Tag::is_http>::type> : mpl::true_ {};
 
-} // namespace boost
+}  // namespace network
 
-#endif // BOOST_NETWORK_SUPPORT_IS_HTTP_HPP_20100622
+}  // namespace boost
+
+#endif  // BOOST_NETWORK_SUPPORT_IS_HTTP_HPP_20100622

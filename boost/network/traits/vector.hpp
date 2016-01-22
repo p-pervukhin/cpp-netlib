@@ -6,24 +6,25 @@
 #ifndef BOOST_NETWORK_TRAITS_VECTOR_HPP
 #define BOOST_NETWORK_TRAITS_VECTOR_HPP
 
-namespace boost { namespace network {
+#include <boost/network/support/is_default_string.hpp>
+#include <vector>
 
-    template <class Tag>
-    struct unsupported_tag;
+namespace boost {
+namespace network {
 
-    template <class Tag>
-    struct vector {
+template <class Tag>
+struct unsupported_tag;
 
-        template <class Type>
-        struct apply {
-            typedef unsupported_tag<Tag> type;
-        };
+template <class Tag>
+struct vector {
 
-    };
+  template <class Type>
+  struct apply : mpl::if_<is_default_string<Tag>, std::vector<Type>,
+                          unsupported_tag<Tag> > {};
+};
 
-} // namespace network
+}  // namespace network
 
-} // namespace boost
+}  // namespace boost
 
-#endif // BOOST_NETWORK_TRAITS_VECTOR_HPP
-
+#endif  // BOOST_NETWORK_TRAITS_VECTOR_HPP

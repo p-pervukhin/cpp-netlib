@@ -5,35 +5,37 @@
 //          http://www.boost.org/LICENSE_1_0.txt)
 
 #ifndef BOOST_NETWORK_TRAITS_OSTRINGSTREAM_INC
-# define BOOST_NETWORK_TRAITS_OSTRINGSTREAM_INC
+#define BOOST_NETWORK_TRAITS_OSTRINGSTREAM_INC
 
-# include <sstream>
-# include <boost/network/tags.hpp>
-# include <boost/mpl/if.hpp>
-# include <boost/network/support/is_default_string.hpp>
-# include <boost/network/support/is_default_wstring.hpp>
+#include <sstream>
+#include <boost/network/tags.hpp>
+#include <boost/mpl/if.hpp>
+#include <boost/network/support/is_default_string.hpp>
+#include <boost/network/support/is_default_wstring.hpp>
 
-namespace boost { namespace network {
+namespace boost {
+namespace network {
 
-    template <class Tag>
-    struct unsupported_tag;
+template <class Tag>
+struct unsupported_tag;
 
-    template <class Tag>
-    struct ostringstream :
-        mpl::if_<
-            is_default_string<Tag>,
-            std::ostringstream,
-            typename mpl::if_<
-                is_default_wstring<Tag>,
-                std::wostringstream,
-                unsupported_tag<Tag>
-            >::type
-        >
-    {};
+template <class Tag, class Enable = void>
+struct ostringstream {
+  typedef unsupported_tag<Tag> type;
+};
 
-} // namespace network
+template <class Tag>
+struct ostringstream<Tag, typename enable_if<is_default_string<Tag> >::type> {
+  typedef std::ostringstream type;
+};
 
-} // namespace boost
+template <class Tag>
+struct ostringstream<Tag, typename enable_if<is_default_wstring<Tag> >::type> {
+  typedef std::wostringstream type;
+};
 
+}  // namespace network
 
-#endif // BOOST_NETWORK_TRAITS_OSTRINGSTREAM_INC
+}  // namespace boost
+
+#endif  // BOOST_NETWORK_TRAITS_OSTRINGSTREAM_INC

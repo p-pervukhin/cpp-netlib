@@ -7,23 +7,20 @@
 // http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/network/tags.hpp>
-#include <boost/type_traits/is_base_of.hpp>
+#include <boost/utility/enable_if.hpp>
 
-namespace boost { namespace network {
-    
-    template <class Tag>
-    struct unsupported_tag;
+namespace boost {
+namespace network {
 
-    template <class Tag>
-    struct is_keepalive :
-        is_base_of<
-            tags::keepalive
-            , Tag
-        >
-    {};
+template <class Tag, class Enable = void>
+struct is_keepalive : mpl::false_ {};
+
+template <class Tag>
+struct is_keepalive<
+    Tag, typename enable_if<typename Tag::is_keepalive>::type> : mpl::true_ {};
 
 } /* network */
-    
+
 } /* boost */
 
 #endif /* BOOST_NETWORK_SUPPORT_IS_KEEPALIVE_HPP_20100927 */

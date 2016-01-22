@@ -6,32 +6,32 @@
 #ifndef BOOST_NETWORK_TRAITS_CHAR_HPP
 #define BOOST_NETWORK_TRAITS_CHAR_HPP
 
-#include <boost/network/tags.hpp>
 #include <boost/network/support/is_default_string.hpp>
 #include <boost/network/support/is_default_wstring.hpp>
-#include <boost/mpl/if.hpp>
 
-namespace boost { namespace network {
+namespace boost {
+namespace network {
 
-    template <class Tag>
-    struct unsupported_tag;
+template <class Tag>
+struct unsupported_tag;
 
-    template <class Tag>
-    struct char_ :
-        mpl::if_<
-            is_default_string<Tag>,
-            char,
-            typename mpl::if_<
-                is_default_wstring<Tag>,
-                wchar_t,
-                unsupported_tag<Tag>
-            >::type
-        >
-    {};
+template <class Tag, class Enable = void>
+struct char_ {
+  typedef unsupported_tag<Tag> type;
+};
 
-} // namespace network
+template <class Tag>
+struct char_<Tag, typename enable_if<is_default_string<Tag> >::type> {
+  typedef char type;
+};
 
-} // namespace boost
+template <class Tag>
+struct char_<Tag, typename enable_if<is_default_wstring<Tag> >::type> {
+  typedef wchar_t type;
+};
 
-#endif // BOOST_NETWORK_TRAITS_CHAR_HPP
+}  // namespace network
 
+}  // namespace boost
+
+#endif  // BOOST_NETWORK_TRAITS_CHAR_HPP
